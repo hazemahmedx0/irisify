@@ -1,0 +1,86 @@
+{
+  "name": "irisify",
+  "version": "0.3.2",
+  "description": "Iridescent border glow for any element - a perimeter-mapped rainbow flash/lights engine with zero dependencies. Pure CSS output, framework-free core, optional React bindings.",
+  "keywords": [
+    "border",
+    "glow",
+    "rainbow",
+    "iridescent",
+    "border-beam",
+    "conic-gradient",
+    "animation",
+    "effect",
+    "ui",
+    "react"
+  ],
+  "license": "MIT",
+  "author": "Hazem Aboelsoud (https://hazem.design)",
+  "homepage": "https://github.com/hazemahmedx0/irisify#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hazemahmedx0/irisify.git"
+  },
+  "bugs": "https://github.com/hazemahmedx0/irisify/issues",
+  "sideEffects": false,
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js",
+      "require": "./dist/react/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "react": [
+        "./dist/react/index.d.ts"
+      ],
+      "*": [
+        "./dist/index.d.ts"
+      ]
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=17"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "react": "^18.3.1",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}
