@@ -90,6 +90,11 @@ export const DEFAULT_INPUTS = {
   visibleUntil: 30, // keyframe % when glow starts fading
   gapBetween: 0, // seconds of darkness between cycles
   outerGlowMask: 1 as MaskIndex,
+  // The flash's outer halo is now a border-hugging ring (see flashHalo in
+  // layers.ts), so its width lives in that spec's blur - this stays at the modest
+  // baseline so the FILL-based halos (lights / sideFlash) aren't over-widened into
+  // their own leak. Fully overridable: advanced.outerGlowBlur adds spread on top,
+  // advanced.outerGlowOpacity / the simple `intensity` knob set how bright it reads.
   outerGlowBlur: 4,
   outerGlowOpacity: 1,
   borderEnabled: true,

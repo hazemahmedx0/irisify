@@ -1,6 +1,6 @@
 {
   "name": "irisify",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Iridescent border glow for any element - a perimeter-mapped rainbow flash/lights engine with zero dependencies. Pure CSS output, framework-free core, optional React bindings.",
   "keywords": [
     "border",

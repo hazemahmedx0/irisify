@@ -140,12 +140,20 @@ export function startDriver(cfg: DriverConfig): () => void {
   const cycles =
     gradArgs.arcs.length * (gradArgs.fill === "bands" ? Math.max(1, gradArgs.count) : 1);
   const revealDriven = motion.reveal || sideFlash;
-  const hiBase = revealDriven ? 168 : 96;
-  const loBase = revealDriven ? 72 : 36;
-  const hiPerCycle = revealDriven ? 72 : 40;
-  const loPerCycle = revealDriven ? 34 : 20;
-  const hiRes = Math.min(revealDriven ? 240 : 192, Math.max(hiBase, cycles * hiPerCycle));
-  const loRes = Math.min(revealDriven ? 120 : 96, Math.max(loBase, cycles * loPerCycle));
+  // Resolution tiers (stop count in the per-frame conic). The draw-on `reveal`
+  // needs the densest conic for a crisp sweeping front. sideFlash needs MORE
+  // stops than the cycling lights (its two arms each get fewer stops per colour),
+  // but the full reveal-tier density (168/72) made Safari/WebKit lag: every flash
+  // frame rebuilds the conic AND Safari re-rasters it across the flash's ~2x
+  // layers, and Safari's conic raster is slow. A lighter middle tier keeps the
+  // flash visually smooth while running close to the (smooth) lights cost.
+  const dense = motion.reveal;
+  const hiBase = dense ? 168 : sideFlash ? 112 : 96;
+  const loBase = dense ? 72 : sideFlash ? 48 : 36;
+  const hiPerCycle = dense ? 72 : sideFlash ? 52 : 40;
+  const loPerCycle = dense ? 34 : sideFlash ? 24 : 20;
+  const hiRes = Math.min(dense ? 240 : sideFlash ? 132 : 192, Math.max(hiBase, cycles * hiPerCycle));
+  const loRes = Math.min(dense ? 120 : sideFlash ? 64 : 96, Math.max(loBase, cycles * loPerCycle));
   const setVar = (name: string, value: string) => {
     for (const n of nodes) n.style.setProperty(name, value);
   };

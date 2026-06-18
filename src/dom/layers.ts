@@ -246,6 +246,16 @@ function outerGlowSide(
     shape: "outline", w: 1, h: 1, cx: 0.5, cy: 0.5, radius: 1,
     line: 9, blur: 0, opacity: 0.58, cropLeft: 0, strokeAlign: "center",
   };
+  // CSS flash: a border-HUGGING soft ring instead of the lopsided FILLED blob
+  // (mask 1). The blob is centred on the box, so a wide blur leaked its top/bottom
+  // edges PAST the box's short edges as disconnected floating clouds in the dim
+  // phase. An outline halo blooms outward from the border itself - the conic +
+  // window mask still confine it to the lit arc so it sweeps with the flash, but
+  // it now reads as one clean halo hugging the box at any blur width.
+  const flashHalo: ProceduralMaskSpec = {
+    shape: "outline", w: 1, h: 1, cx: 0.5, cy: 0.5, radius: 1,
+    line: 8, blur: 8, opacity: 0.5, cropLeft: 0, strokeAlign: "center",
+  };
   // Side-cap bloom (sideFlash only). The card-shaped halo gives the long edges a
   // wide blurred apron but the short caps only a sliver, so any launch / arrival
   // / sweep-through at a cap reads as crammed crisp stripes instead of the B→T
@@ -312,8 +322,12 @@ function outerGlowSide(
           // opacity 0.155 ×2 passes ≈ 0.31, diffused by spec blur 15 ON TOP of
           // the pass blur.
           ctx.jsGradient
-          ? tunedHalo ?? (ctx.sideFlash ? { ...softHalo, blur: 15, opacity: 0.31 } : softHalo)
-          : undefined,
+          ? // sideFlash gets the same border-hugging ring (its FILLED halo leaked
+            // the same clouds); lights keeps the even full-card fill, which reads
+            // clean. Tuned spec still wins.
+            tunedHalo ?? (ctx.sideFlash ? { ...flashHalo, opacity: 0.42 } : softHalo)
+          : // CSS flash: border-hugging ring (user-tuned spec still wins).
+            tunedHalo ?? flashHalo,
       lw: w,
       lh: h,
       blur: config.outerGlowBlur + (ctx.jsGradient ? (motion.reveal ? 14 : 8) : 8),
@@ -359,11 +373,13 @@ function outerGlowSide(
     }
   }
   if (o.extra) {
+    // Blurred richness layers - detail is wasted after the blur, so paint the
+    // cheap lo-res conic (keeps Safari's per-frame raster light on the flash).
     box.appendChild(
-      proceduralLine(ctx, { mask: 3, lw: w, lh: h, blur: 6, opacity: 1, outerScale: 1.01, coverage: o.coverage, windowMask: o.windowMask }),
+      proceduralLine(ctx, { mask: 3, lw: w, lh: h, blur: 6, opacity: 1, outerScale: 1.01, coverage: o.coverage, windowMask: o.windowMask, loRes: true }),
     );
     box.appendChild(
-      proceduralLine(ctx, { mask: 2, lw: w, lh: h, blur: 8, opacity: 1, outerScale: 1.02, coverage: o.coverage, windowMask: o.windowMask }),
+      proceduralLine(ctx, { mask: 2, lw: w, lh: h, blur: 8, opacity: 1, outerScale: 1.02, coverage: o.coverage, windowMask: o.windowMask, loRes: true }),
     );
   }
   root.appendChild(box);

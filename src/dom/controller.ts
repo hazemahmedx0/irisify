@@ -73,6 +73,11 @@ export function createController(setup: ControllerSetup): Controller {
   let destroyed = false;
   let renderQueued = false;
   let queuedFrame = 0;
+  // Last rendered border-box. render() derives every layer from these integers,
+  // so a resize notification that doesn't change them would rebuild identical
+  // DOM - the guard below skips it (and rules out any RO feedback loop).
+  let lastW = -1;
+  let lastH = -1;
 
   // Decorative only: invisible to assistive tech, transparent to the pointer.
   for (const c of [under, over]) {
@@ -98,6 +103,8 @@ export function createController(setup: ControllerSetup): Controller {
     });
     const w = measureEl.offsetWidth;
     const h = measureEl.offsetHeight;
+    lastW = w;
+    lastH = h;
     stopDriver();
     stopDriver = () => {};
     if (config.disabled || w < 2 || h < 2) {
@@ -117,12 +124,14 @@ export function createController(setup: ControllerSetup): Controller {
     const moving = motion.mode === "lights";
     // sideFlash: the JS-gradient two-arm flash - the only path that honours
     // origin/destination, stay-lit mode, or overlapping flights (negative gap,
-    // which a CSS keyframe can't do). The pure-CSS conic survives ONLY for the
-    // canonical bottom→top flash (origin 180 / dest 0, vertical axis): it costs
-    // no animation loop and is pixel-identical to the original. The moment any
-    // of those defaults change, route through JS automatically - so setting
-    // flashOriginAngle / flashDestAngle "just works" without also flipping
-    // flashAxis (which stays as an explicit escape hatch, no longer required).
+    // which a single CSS keyframe can't do). The canonical bottom→top flash
+    // (origin 180 / dest 0, vertical axis) takes the pure-CSS conic path: it's
+    // GPU-composited (no per-frame raster) so it stays smooth even with many
+    // instances. That path animates the wedge with `transform: rotate` + opacity
+    // - NOT an animated @property angle, which made Safari/WebKit paint a
+    // full-ring frame for one tick at every `animation: infinite` restart (a
+    // registered-@property compositor bug Chrome doesn't have). The moment any
+    // default changes, route through JS automatically.
     const customDirection =
       motion.flashOriginAngle !== 180 || motion.flashDestAngle !== 0;
     const sideFlash =
@@ -240,9 +249,16 @@ export function createController(setup: ControllerSetup): Controller {
     );
 
     // ── container vars (the original's parent CSS custom properties) ──
+    // The CSS flash rotates its conic with `transform: rotate` instead of an
+    // animated @property angle. A rotated rectangle leaves uncovered corners, so
+    // the conic layer is sized to a SQUARE bigger than the box's diagonal (plus a
+    // margin for the outer halo's overhang), centred on the box - it then covers
+    // every layer at any rotation.
+    const diag = Math.ceil(Math.hypot(w, h)) + 240;
     for (const c of [under, over]) {
       c.style.setProperty("--iris-w", `${w}px`);
       c.style.setProperty("--iris-h", `${h}px`);
+      c.style.setProperty("--iris-diag", `${diag}px`);
       c.style.setProperty("--iris-play", config.paused ? "paused" : "running");
       config.stops.forEach((s, i) => c.style.setProperty(`--iris-c${i}`, stopCss(s)));
       c.style.overflow = "visible";
@@ -296,7 +312,15 @@ export function createController(setup: ControllerSetup): Controller {
     });
   };
 
-  const ro = typeof win.ResizeObserver === "function" ? new win.ResizeObserver(queueRender) : null;
+  // Ignore resize bursts that leave the integer border-box unchanged: they would
+  // only rebuild identical layers and restart the animation. (RO fires once on
+  // observe() with the size we just rendered - this also drops that no-op.)
+  const onResize = () => {
+    if (destroyed) return;
+    if (measureEl.offsetWidth === lastW && measureEl.offsetHeight === lastH) return;
+    queueRender();
+  };
+  const ro = typeof win.ResizeObserver === "function" ? new win.ResizeObserver(onResize) : null;
   ro?.observe(measureEl);
   const onMedia = () => queueRender();
   media?.addEventListener?.("change", onMedia);
